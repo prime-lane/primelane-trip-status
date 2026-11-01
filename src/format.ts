@@ -41,7 +41,7 @@ export function headlineFor(trip: PublicTrip): Headline {
     : '';
   const driverLine = [driver?.first_name, car].filter(Boolean).join(' · ');
 
-  switch (ride.status) {
+  switch (ride?.status) {
     case 'PENDING':
       return { title: 'Ride has been booked', subtitle: 'Awaiting confirmation' };
     case 'ACCEPTED':
@@ -55,11 +55,11 @@ export function headlineFor(trip: PublicTrip): Headline {
     case 'ON_THE_WAY':
       return {
         title: 'Trip in progress',
-        subtitle: ride.dropoff.address ? `Heading to ${ride.dropoff.address}` : '',
+        subtitle: ride?.dropoff.address ? `Heading to ${ride?.dropoff.address}` : '',
       };
     case 'COMPLETED':
       return { title: 'Trip completed', subtitle: 'Thanks for riding with Primelane' };
     default:
-      return { title: ride.status_label, subtitle: '' };
+      return { title: ride?.status_label, subtitle: '' };
   }
 }
