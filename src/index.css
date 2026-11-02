@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'Kento';
+  src: url('./assets/fonts/Kento-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-display: swap;
+}
+
+@theme {
+  --font-sans: 'Helvetica Neue', Helvetica, Arial, system-ui, sans-serif;
+  --font-display: 'Kento', 'Helvetica Neue', sans-serif;
+  --color-pickup: #ef4444;
+  --color-dropoff: #22c55e;
+  --animate-blink: blink 1.6s ease-in-out infinite;
+
+  @keyframes blink {
+    50% {
+      opacity: 0.3;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+  body {
+    @apply bg-white font-sans text-neutral-950 antialiased;
+  }
+}
