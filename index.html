@@ -3,11 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="robots" content="noindex" />
+    <title>Your Primelane ride</title>
+    <meta
+      name="description"
+      content="Follow your Primelane ride: driver details, pickup time and trip status."
+    />
+
+    <!-- Private, tokenised links: keep them out of search results and out of Referer headers. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="format-detection" content="telephone=no" />
+
     <meta name="theme-color" content="#ffffff" />
+    <meta name="color-scheme" content="light" />
+    <meta name="apple-mobile-web-app-title" content="Primelane" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Link previews (WhatsApp, iMessage, Facebook, X, Slack). No og:url: each link is unique. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Primelane" />
+    <meta property="og:title" content="Track your Primelane ride" />
+    <meta
+      property="og:description"
+      content="Driver details, pickup time and trip status, shared by Primelane."
+    />
+    <meta property="og:image" content="%SITE_URL%/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Primelane: track your ride" />
+    <meta property="og:locale" content="en_NG" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Track your Primelane ride" />
+    <meta
+      name="twitter:description"
+      content="Driver details, pickup time and trip status, shared by Primelane."
+    />
+    <meta name="twitter:image" content="%SITE_URL%/og-image.png" />
+
     <link rel="preconnect" href="https://res.cloudinary.com" />
-    <title>Your Prime Lane ride</title>
   </head>
   <body>
     <div id="root"></div>

@@ -11,7 +11,7 @@ and a live "Time left" countdown once the trip starts. The driver card (with
 call button) appears only while a driver is on the ride.
 
 ```bash
-cp .env.example .env   # set VITE_PRIMELANE_API_BASE_URL
+cp .env.example .env   # set VITE_PRIMELANE_API_BASE_URL and VITE_PUBLIC_URL
 npm install
 npm run dev            # http://localhost:5173/t/<token>
 npm run build
@@ -20,3 +20,7 @@ npm run build
 Deploy as a static SPA (vercel.json rewrites every path to index.html), then
 set the API's `STATUS_LINK_BASE_URL` to this app's origin.
 # primelane-trip-status
+
+`VITE_PUBLIC_URL` must be this app's public origin: link previews in SMS,
+WhatsApp and iMessage only show the share image (`public/og-image.png`) when
+its URL is absolute. The build warns if it's missing.
