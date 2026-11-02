@@ -1,14 +1,16 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { PublicTrip } from './api';
 import logo from './assets/logo.svg';
+import { avatarSrc } from './image';
 import {
   bookedTimeLabel,
   formatDateTime,
   formatShortDate,
-  formatTime,
+  formatWhen,
   headlineFor,
   RIDE_TYPE_LABELS,
-  timeLeft,
+  rentalClock,
+  splitDuration,
   vehicleLabel,
   waitEndsAt,
 } from './format';
@@ -76,7 +78,7 @@ function Trip({ trip, stale }: { trip: PublicTrip; stale: boolean }) {
   const headline = headlineFor(trip, now);
   const isRental = ride.ride_type !== 'airport_transfer';
   const showDriver = !!driver && DRIVER_STATUSES.includes(ride.status);
-  const showTimeLeft = isRental && ride.status === 'ON_THE_WAY' && !!ride.ends_at;
+  const clock = isRental && !trip.ended ? rentalClock(ride, now) : null;
   const showWait = !trip.ended && WAIT_STATUSES.includes(ride.status) && !!waitEndsAt(ride);
 
   return (
@@ -113,7 +115,7 @@ function Trip({ trip, stale }: { trip: PublicTrip; stale: boolean }) {
         </div>
       </Card>
 
-      {showTimeLeft && <TimeLeft endsAt={ride.ends_at!} now={now} />}
+      {clock && <TimeLeft {...clock} now={now} />}
 
       {showDriver && <DriverCard driver={driver!} vehicle={vehicle} />}
 
@@ -164,8 +166,8 @@ function StatusPill({ ended, stale }: { ended: boolean; stale: boolean }) {
   );
 }
 
-function TimeLeft({ endsAt, now }: { endsAt: string; now: number }) {
-  const { major, minor, units } = timeLeft(endsAt, now);
+function TimeLeft({ mins, endsAt, now }: { mins: number; endsAt: Date; now: number }) {
+  const { major, minor, units } = splitDuration(mins);
   return (
     <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
       <p className="bg-emerald-600 py-1.5 text-center text-sm font-medium text-white">Time left</p>
@@ -174,7 +176,9 @@ function TimeLeft({ endsAt, now }: { endsAt: string; now: number }) {
         <span className="-mt-6 font-display text-3xl text-neutral-300">:</span>
         <Digits value={minor} unit={units[1]} />
       </div>
-      <p className="pb-4 text-center text-[13px] text-neutral-500">Ends {formatTime(new Date(endsAt))}</p>
+      <p className="pb-4 text-center text-[13px] text-neutral-500">
+        Ends {formatWhen(endsAt, now)}
+      </p>
     </section>
   );
 }
@@ -200,18 +204,7 @@ function DriverCard({
     <Card>
       <div className="flex items-center gap-4">
         <div className="size-[60px] flex-none rounded-full p-[3px] ring-2 ring-black">
-          {driver.photo_url ? (
-            <img
-              src={driver.photo_url}
-              alt=""
-              className="size-full rounded-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="grid size-full place-items-center rounded-full bg-neutral-100">
-              <UserIcon className="size-6 text-neutral-500" />
-            </div>
-          )}
+          <Avatar key={driver.photo_url} url={driver.photo_url} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[17px] font-medium">{name}</p>
@@ -235,6 +228,33 @@ function DriverCard({
         )}
       </div>
     </Card>
+  );
+}
+
+// Placeholder shows until the photo has fully decoded, then the photo fades in;
+// a broken URL just leaves the placeholder.
+function Avatar({ url }: { url: string | null }) {
+  const [state, setState] = useState<'loading' | 'loaded' | 'failed'>('loading');
+  const image = url && state !== 'failed' ? avatarSrc(url, 54) : null;
+
+  return (
+    <div className="relative size-full overflow-hidden rounded-full bg-neutral-100">
+      <UserIcon className="absolute inset-0 m-auto size-6 text-neutral-400" />
+      {image && (
+        <img
+          {...image}
+          alt=""
+          width={54}
+          height={54}
+          decoding="async"
+          onLoad={() => setState('loaded')}
+          onError={() => setState('failed')}
+          className={`absolute inset-0 size-full object-cover transition-opacity duration-300 ${
+            state === 'loaded' ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+      )}
+    </div>
   );
 }
 
@@ -290,10 +310,10 @@ function WaitCard({ ride, now }: { ride: PublicTrip['ride']; now: number }) {
 
   const note =
     mins <= 0
-      ? `Please be ready by ${formatTime(until)}. Wait or cancellation fees apply from pickup time.`
+      ? `Please be ready by ${formatWhen(until, now)}. Wait or cancellation fees apply from pickup time.`
       : over
-        ? `Free wait time ended at ${formatTime(until)}. Wait fees may now apply.`
-        : `You have until ${formatTime(until)} to meet your driver, after which wait or cancellation fees may apply.`;
+        ? `Free wait time ended at ${formatWhen(until, now)}. Wait fees may now apply.`
+        : `You have until ${formatWhen(until, now)} to meet your driver, after which wait or cancellation fees may apply.`;
 
   return (
     <Card>

@@ -36,6 +36,12 @@ export function formatTime(d: Date): string {
   return `${time} WAT`;
 }
 
+// Time only when it's today in Lagos, otherwise the full date and time.
+export function formatWhen(d: Date, now: number): string {
+  const day = (t: number) => new Date(t).toLocaleDateString('en-GB', { timeZone: LAGOS });
+  return day(d.getTime()) === day(now) ? formatTime(d) : formatDateTime(d.toISOString());
+}
+
 export const RIDE_TYPE_LABELS: Record<RideType, string> = {
   airport_transfer: 'Airport Transfer',
   daily: 'Daily Rental',
@@ -63,11 +69,15 @@ export function vehicleLabel(v: NonNullable<PublicTrip['vehicle']>): string {
     .join(', ');
 }
 
-/** When free waiting ends: from the driver's arrival, else estimated from pickup time. */
+/**
+ * When free waiting ends. Waiting counts from the booked pickup time, or from
+ * the driver's arrival if they're late — an early driver doesn't start the clock.
+ */
 export function waitEndsAt(ride: PublicTrip['ride']): Date | null {
-  const from = ride.arrived_at ?? ride.pickup.time;
-  if (!from) return null;
-  return new Date(new Date(from).getTime() + ride.free_wait_mins * MIN);
+  const times = [ride.pickup.time, ride.arrived_at].filter((t): t is string => !!t);
+  if (!times.length) return null;
+  const from = Math.max(...times.map((t) => new Date(t).getTime()));
+  return new Date(from + ride.free_wait_mins * MIN);
 }
 
 export function minutesUntil(target: Date, now: number): number {
@@ -95,6 +105,13 @@ export function headlineFor(trip: PublicTrip, now: number): Headline {
           : 'Arriving soon',
       };
     case 'AT_PICKUP': {
+      const pickupAt = ride.pickup.time ? new Date(ride.pickup.time) : null;
+      if (pickupAt && pickupAt.getTime() > now) {
+        return {
+          title: 'Driver has arrived',
+          subtitle: `Your driver is early. Pickup is at ${formatWhen(pickupAt, now)}`,
+        };
+      }
       const end = waitEndsAt(ride);
       const left = end ? minutesUntil(end, now) : 0;
       return {
@@ -127,13 +144,23 @@ export function headlineFor(trip: PublicTrip, now: number): Headline {
   }
 }
 
-/** Remaining rental time split for the countdown: days/hours past 24h, else hours/minutes. */
-export function timeLeft(endsAt: string, now: number) {
-  const mins = Math.max(0, Math.floor((new Date(endsAt).getTime() - now) / MIN));
+/** Rental time split for the clock: days/hours past 24h, else hours/minutes. */
+export function splitDuration(mins: number) {
+  const m = Math.max(0, Math.floor(mins));
   const pad = (n: number) => String(n).padStart(2, '0');
-  if (mins >= 24 * 60) {
-    const hours = Math.floor(mins / 60);
+  if (m >= 24 * 60) {
+    const hours = Math.floor(m / 60);
     return { major: pad(Math.floor(hours / 24)), minor: pad(hours % 24), units: ['dd', 'hh'] };
   }
-  return { major: pad(Math.floor(mins / 60)), minor: pad(mins % 60), units: ['hh', 'mm'] };
+  return { major: pad(Math.floor(m / 60)), minor: pad(m % 60), units: ['hh', 'mm'] };
+}
+
+/** Live countdown for a rental once its trip has started; null before that. */
+export function rentalClock(
+  ride: PublicTrip['ride'],
+  now: number,
+): { mins: number; endsAt: Date } | null {
+  if (ride.status !== 'ON_THE_WAY' || !ride.ends_at) return null;
+  const endsAt = new Date(ride.ends_at);
+  return { mins: (endsAt.getTime() - now) / MIN, endsAt };
 }
