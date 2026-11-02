@@ -5,7 +5,7 @@ import linkEnded3x from './assets/link-ended-507.webp';
 import mark from './assets/mark.svg';
 import logo from './assets/logo.svg';
 import { avatarSrc } from './image';
-import { RideMap } from './RideMap';
+import { canShowMap, RideMap } from './RideMap';
 import {
   bookedTimeLabel,
   formatDateTime,
@@ -123,7 +123,11 @@ function Trip({ trip, stale }: { trip: PublicTrip; stale: boolean }) {
       </section>
 
       {/* Rentals have no drop-off, so they get just the pickup pin. */}
-      <RideMap pickup={ride.pickup} dropoff={isRental ? null : ride.dropoff} />
+      <RideMap
+        pickup={ride.pickup}
+        dropoff={isRental ? null : ride.dropoff}
+        overlay={clock && <MapTimer mins={clock.mins} />}
+      />
 
       <Card>
         <div className="flex items-start justify-between gap-3">
@@ -135,7 +139,8 @@ function Trip({ trip, stale }: { trip: PublicTrip; stale: boolean }) {
         </div>
       </Card>
 
-      {clock && <TimeLeft {...clock} now={now} />}
+      {/* Without a map, the timer gets its own card. */}
+      {clock && !canShowMap(ride.pickup) && <TimeLeft {...clock} now={now} />}
 
       {showDriver && <DriverCard driver={driver!} vehicle={vehicle} />}
 
@@ -183,6 +188,27 @@ function StatusPill({ ended, stale }: { ended: boolean; stale: boolean }) {
       <span className="size-2 rounded-full bg-emerald-500 animate-blink motion-reduce:animate-none" />
       Live
     </Pill>
+  );
+}
+
+// Compact "Time left" that sits on the map's bottom-left corner.
+function MapTimer({ mins }: { mins: number }) {
+  const segments = splitDuration(mins);
+  return (
+    <div className="min-w-[118px] bg-white shadow-[0_2px_10px_rgb(0_0_0/0.12)]" role="timer">
+      <p className="bg-emerald-600 py-1 text-center text-[13px] text-white">Time left</p>
+      <div className="flex items-start justify-center gap-2 px-3 pt-2.5 pb-2">
+        {segments.map((seg, i) => (
+          <Fragment key={seg.unit}>
+            {i > 0 && <span className="font-display text-[22px] leading-none">:</span>}
+            <div className="text-center">
+              <p className="font-display text-[22px] leading-none tabular-nums">{seg.value}</p>
+              <p className="mt-2 text-[12px] text-neutral-500">{seg.unit}</p>
+            </div>
+          </Fragment>
+        ))}
+      </div>
+    </div>
   );
 }
 

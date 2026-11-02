@@ -27,17 +27,29 @@ type Point = google.maps.LatLngLiteral;
 const toPoint = (p: Place): Point | null =>
   p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : null;
 
+/** Whether the map can render: needs a key and pickup coordinates. */
+export const canShowMap = (pickup: Place) => !!API_KEY && !!toPoint(pickup);
+
 /**
  * Pickup → drop-off route, or just the pickup pin when there's no drop-off
- * (daily/fleet rentals). Renders nothing without a key or pickup coordinates.
+ * (daily/fleet rentals). `overlay` sits on the map's bottom-left corner.
+ * Renders nothing when canShowMap is false.
  */
-export function RideMap({ pickup, dropoff }: { pickup: Place; dropoff: Place | null }) {
+export function RideMap({
+  pickup,
+  dropoff,
+  overlay,
+}: {
+  pickup: Place;
+  dropoff: Place | null;
+  overlay?: ReactNode;
+}) {
   const from = toPoint(pickup);
   const to = dropoff ? toPoint(dropoff) : null;
   if (!API_KEY || !from) return null;
 
   return (
-    <section className="-mx-4 h-64 bg-neutral-100" aria-label="Map of your trip">
+    <section className="relative -mx-4 h-64 bg-neutral-100" aria-label="Map of your trip">
       <APIProvider apiKey={API_KEY}>
         <Map
           styles={MAP_STYLES}
@@ -67,6 +79,8 @@ export function RideMap({ pickup, dropoff }: { pickup: Place; dropoff: Place | n
           <Framing from={from} to={to} />
         </Map>
       </APIProvider>
+      {/* Sits above the Google logo, which the Maps terms require to stay visible. */}
+      {overlay && <div className="absolute bottom-7 left-2.5 z-10">{overlay}</div>}
     </section>
   );
 }

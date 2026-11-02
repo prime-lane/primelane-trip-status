@@ -126,8 +126,8 @@ export function headlineFor(trip: PublicTrip, now: number): Headline {
     case 'ON_THE_WAY':
       if (isRental) {
         return {
-          title: 'Trip in progress',
-          subtitle: ride.ends_at ? `Booking ends ${formatWhen(new Date(ride.ends_at), now)}` : '',
+          title: 'Trip ongoing',
+          subtitle: ride.ends_at ? `Trip ends at ${formatWhen(new Date(ride.ends_at), now)}` : '',
         };
       }
       return {

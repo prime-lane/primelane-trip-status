@@ -10,7 +10,11 @@ type State =
   | { kind: 'expired' }
   | { kind: 'error' };
 
-/** Loads the trip, then polls every 10s while it's active and the tab is visible. */
+/**
+ * Loads the trip, then polls every 10s while it's active, the tab is visible
+ * and the device is online. Going offline flags the data as stale right away;
+ * coming back online refreshes immediately.
+ */
 export function useTrip(token: string | null): State {
   const [state, setState] = useState<State>(
     token ? { kind: 'loading' } : { kind: 'not_found' },
@@ -22,8 +26,21 @@ export function useTrip(token: string | null): State {
     let cancelled = false;
     let ended = false;
 
+    // Keep the last good data on screen, flagged as stale.
+    const markStale = () =>
+      setState((prev) => {
+        if (prev.kind === 'ready') return { ...prev, stale: true };
+        if (prev.kind === 'loading') return { kind: 'error' };
+        return prev;
+      });
+
     const load = async () => {
       clearTimeout(timer);
+      // No point polling without a connection; the 'online' event resumes it.
+      if (!navigator.onLine) {
+        markStale();
+        return;
+      }
       try {
         const trip = await fetchTrip(token);
         if (cancelled) return;
@@ -48,13 +65,24 @@ export function useTrip(token: string | null): State {
     const onVisibility = () => {
       if (!document.hidden && !ended) load();
     };
+    const onOffline = () => {
+      clearTimeout(timer);
+      markStale();
+    };
+    const onOnline = () => {
+      if (!ended) load();
+    };
 
     load();
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('offline', onOffline);
+    window.addEventListener('online', onOnline);
     return () => {
       cancelled = true;
       clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('offline', onOffline);
+      window.removeEventListener('online', onOnline);
     };
   }, [token]);
 
