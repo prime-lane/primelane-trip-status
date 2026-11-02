@@ -24,3 +24,7 @@ set the API's `STATUS_LINK_BASE_URL` to this app's origin.
 `VITE_PUBLIC_URL` must be this app's public origin: link previews in SMS,
 WhatsApp and iMessage only show the share image (`public/og-image.png`) when
 its URL is absolute. The build warns if it's missing.
+
+`VITE_GOOGLE_MAPS_API_KEY` is a browser key for the trip map (Maps JavaScript
+API + Directions API). Restrict it by HTTP referrer to this app's domains. The
+map hides itself when the key or the pickup coordinates are missing.

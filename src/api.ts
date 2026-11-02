@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 // Mirrors RidePassengerService.getPublicTrip in prime-lane-api-v1.
 export type RideType = 'airport_transfer' | 'daily' | 'fleet';
 
@@ -14,8 +16,8 @@ export interface PublicTrip {
     free_wait_mins: number;
     booked_hours: number | null;
     no_of_days: number | null;
-    pickup: { address: string | null; time: string | null };
-    dropoff: { address: string | null };
+    pickup: Place & { time: string | null };
+    dropoff: Place;
     flight_no: string | null;
     flight_time: string | null;
     arrived_at: string | null;
@@ -41,6 +43,12 @@ export interface PublicTrip {
   expires_at: string | null;
 }
 
+export interface Place {
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+
 export class TripError extends Error {
   constructor(public readonly kind: 'not_found' | 'expired' | 'network') {
     super(kind);
@@ -52,18 +60,22 @@ const API_BASE = (import.meta.env.VITE_PRIMELANE_API_BASE_URL ?? '').replace(
   '',
 );
 
+// Device-aware store link: App Store on iOS, Play on Android, both buttons elsewhere.
+export const APP_LINK = `${API_BASE}/app`;
+
+const http = axios.create({ baseURL: API_BASE, timeout: 10_000 });
+
 export async function fetchTrip(token: string): Promise<PublicTrip> {
-  let res: Response;
+  let body;
   try {
-    res = await fetch(`${API_BASE}/rides/public/${encodeURIComponent(token)}`);
-  } catch {
+    ({ data: body } = await http.get(`/rides/public/${encodeURIComponent(token)}`));
+  } catch (err) {
+    const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+    if (status === 404) throw new TripError('not_found');
+    if (status === 410) throw new TripError('expired');
     throw new TripError('network');
   }
-  if (res.status === 404) throw new TripError('not_found');
-  if (res.status === 410) throw new TripError('expired');
-  if (!res.ok) throw new TripError('network');
   // The API wraps every response as { data, success }.
-  const body = await res.json();
   return normalize(body?.data ?? body);
 }
 
@@ -81,8 +93,8 @@ function normalize(raw: PublicTrip): PublicTrip {
       free_wait_mins: ride.free_wait_mins ?? 0,
       booked_hours: ride.booked_hours ?? null,
       no_of_days: ride.no_of_days ?? null,
-      pickup: { address: ride.pickup?.address ?? null, time: ride.pickup?.time ?? null },
-      dropoff: { address: ride.dropoff?.address ?? null },
+      pickup: { ...place(ride.pickup), time: ride.pickup?.time ?? null },
+      dropoff: place(ride.dropoff),
       flight_no: ride.flight_no ?? null,
       flight_time: ride.flight_time ?? null,
       arrived_at: ride.arrived_at ?? null,
@@ -101,4 +113,9 @@ function normalize(raw: PublicTrip): PublicTrip {
       ? { ...raw.vehicle, year: raw.vehicle.year ?? null, color: raw.vehicle.color ?? null, plate: raw.vehicle.plate ?? null }
       : null,
   };
+}
+
+function place(raw?: Partial<Place> | null): Place {
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  return { address: raw?.address ?? null, lat: num(raw?.lat), lng: num(raw?.lng) };
 }

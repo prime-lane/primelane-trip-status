@@ -1,7 +1,11 @@
-import { useState, type ReactNode } from 'react';
-import type { PublicTrip } from './api';
+import { Fragment, useState, type ReactNode } from 'react';
+import { APP_LINK, type PublicTrip } from './api';
+import linkEnded2x from './assets/link-ended-338.webp';
+import linkEnded3x from './assets/link-ended-507.webp';
+import mark from './assets/mark.svg';
 import logo from './assets/logo.svg';
 import { avatarSrc } from './image';
+import { RideMap } from './RideMap';
 import {
   bookedTimeLabel,
   formatDateTime,
@@ -57,25 +61,29 @@ export default function App() {
         {state.kind === 'loading' && <Skeleton />}
         {state.kind === 'ready' && <Trip trip={state.trip} stale={state.stale} />}
         {state.kind === 'not_found' && (
-          <Message
-            title="Trip not found"
+          <LinkInactive
+            title="Link not found"
             body="This link isn't valid. Check the link in your SMS and try again."
           />
         )}
         {state.kind === 'expired' && (
-          <Message
-            title="This link has expired"
-            body="The trip has ended, so its status is no longer shared."
+          <LinkInactive
+            title="Tracking has ended"
+            body="This trip has ended, so live tracking has stopped. This link is no longer active."
           />
         )}
         {state.kind === 'error' && (
           <Message title="Can't load your ride" body="Check your connection. We'll keep trying." />
         )}
 
-        <footer className="sticky bottom-0 flex items-center gap-3.5 border-t border-neutral-200 bg-white/90 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-[13px] leading-snug text-neutral-500 backdrop-blur-md">
-          <ShieldIcon className="size-6 flex-none text-neutral-500" />
-          <p>Ride status shared by Primelane. This link stops working when the trip ends.</p>
-        </footer>
+        {state.kind === 'not_found' || state.kind === 'expired' ? (
+          <AppPromo />
+        ) : (
+          <footer className="sticky bottom-0 flex items-center gap-3.5 border-t border-neutral-200 bg-white/90 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-[13px] leading-snug text-neutral-500 backdrop-blur-md">
+            <ShieldIcon className="size-6 flex-none text-neutral-500" />
+            <p>Ride status shared by Primelane. This link stops working when the trip ends.</p>
+          </footer>
+        )}
       </div>
     </div>
   );
@@ -113,6 +121,9 @@ function Trip({ trip, stale }: { trip: PublicTrip; stale: boolean }) {
           <CarIcon className="size-6" />
         </div>
       </section>
+
+      {/* Rentals have no drop-off, so they get just the pickup pin. */}
+      <RideMap pickup={ride.pickup} dropoff={isRental ? null : ride.dropoff} />
 
       <Card>
         <div className="flex items-start justify-between gap-3">
@@ -176,14 +187,17 @@ function StatusPill({ ended, stale }: { ended: boolean; stale: boolean }) {
 }
 
 function TimeLeft({ mins, endsAt, now }: { mins: number; endsAt: Date; now: number }) {
-  const { major, minor, units } = splitDuration(mins);
+  const segments = splitDuration(mins);
   return (
     <section className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
       <p className="bg-emerald-600 py-1.5 text-center text-sm font-medium text-white">Time left</p>
-      <div className="flex items-center justify-center gap-6 px-4 pt-4 pb-3">
-        <Digits value={major} unit={units[0]} />
-        <span className="-mt-6 font-display text-3xl text-neutral-300">:</span>
-        <Digits value={minor} unit={units[1]} />
+      <div className="flex items-center justify-center gap-4 px-4 pt-4 pb-3 sm:gap-6">
+        {segments.map((seg, i) => (
+          <Fragment key={seg.unit}>
+            {i > 0 && <span className="-mt-6 font-display text-3xl text-neutral-300">:</span>}
+            <Digits value={seg.value} unit={seg.unit} />
+          </Fragment>
+        ))}
       </div>
       <p className="pb-4 text-center text-[13px] text-neutral-500">
         Ends {formatWhen(endsAt, now)}
@@ -408,6 +422,47 @@ function Message({ title, body }: { title: string; body: string }) {
         </div>
       </Card>
     </main>
+  );
+}
+
+function LinkInactive({ title, body }: { title: string; body: string }) {
+  return (
+    <main className="flex flex-1 flex-col items-center justify-center px-8 pb-10 text-center">
+      <img
+        src={linkEnded2x}
+        srcSet={`${linkEnded2x} 2x, ${linkEnded3x} 3x`}
+        alt=""
+        width={169}
+        height={154}
+        className="mb-6"
+      />
+      <h1 className="text-[22px] font-medium">{title}</h1>
+      <p className="mt-2.5 max-w-[300px] text-[15px] leading-snug text-neutral-500">{body}</p>
+    </main>
+  );
+}
+
+function AppPromo() {
+  return (
+    <aside className="sticky bottom-0 px-4 pt-2 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <div className="flex items-center gap-2.5 rounded-2xl border border-neutral-200 bg-white p-3.5 shadow-[0_4px_24px_rgb(0_0_0/0.06)]">
+        <div className="grid size-10 flex-none place-items-center rounded-[10px] bg-black">
+          <img src={mark} alt="" width={20} height={20} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[14px] leading-tight font-medium">Ride Premium with Primelane</p>
+          <p className="mt-1 text-[12px] leading-tight text-neutral-500">Premium airport rides, on demand</p>
+        </div>
+        <a
+          href={APP_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex-none bg-black px-3.5 py-2.5 text-[13px] font-medium tracking-wide text-white transition hover:bg-neutral-800 active:scale-95"
+        >
+          GET APP
+        </a>
+      </div>
+    </aside>
   );
 }
 

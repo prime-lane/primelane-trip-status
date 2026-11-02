@@ -145,15 +145,14 @@ export function headlineFor(trip: PublicTrip, now: number): Headline {
   }
 }
 
-/** Rental time split for the clock: days/hours past 24h, else hours/minutes. */
-export function splitDuration(mins: number) {
+/** Clock segments: dd:hh:mm when a day or more is left, else hh:mm. */
+export function splitDuration(mins: number): { value: string; unit: string }[] {
   const m = Math.max(0, Math.floor(mins));
   const pad = (n: number) => String(n).padStart(2, '0');
-  if (m >= 24 * 60) {
-    const hours = Math.floor(m / 60);
-    return { major: pad(Math.floor(hours / 24)), minor: pad(hours % 24), units: ['dd', 'hh'] };
-  }
-  return { major: pad(Math.floor(m / 60)), minor: pad(m % 60), units: ['hh', 'mm'] };
+  const hh = { value: pad(Math.floor(m / 60) % 24), unit: 'hh' };
+  const mm = { value: pad(m % 60), unit: 'mm' };
+  if (m >= 24 * 60) return [{ value: pad(Math.floor(m / 1440)), unit: 'dd' }, hh, mm];
+  return [{ value: pad(Math.floor(m / 60)), unit: 'hh' }, mm];
 }
 
 /** Live countdown for a rental once its trip has started; null before that. */
