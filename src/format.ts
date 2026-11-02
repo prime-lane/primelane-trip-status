@@ -3,7 +3,7 @@ import type { PublicTrip, RideType } from './api';
 const LAGOS = 'Africa/Lagos';
 const MIN = 60_000;
 
-// "Sat, Oct 4, 2026 11:20 WAT"
+// "Sat, Oct 4, 2026 11:20 AM WAT"
 export function formatDateTime(iso: string): string {
   const d = new Date(iso);
   const date = d.toLocaleDateString('en-US', {
@@ -26,12 +26,13 @@ export function formatShortDate(iso: string): string {
   });
 }
 
-// "11:25 WAT"
+// "1:00 AM WAT"
 export function formatTime(d: Date): string {
-  const time = d.toLocaleTimeString('en-GB', {
+  const time = d.toLocaleTimeString('en-US', {
     timeZone: LAGOS,
-    hour: '2-digit',
+    hour: 'numeric',
     minute: '2-digit',
+    hour12: true,
   });
   return `${time} WAT`;
 }
@@ -101,7 +102,7 @@ export function headlineFor(trip: PublicTrip, now: number): Headline {
       return {
         title: 'Driver en route to pickup',
         subtitle: ride.pickup.time
-          ? `Arriving by ${formatTime(new Date(ride.pickup.time))}`
+          ? `Arriving by ${formatWhen(new Date(ride.pickup.time), now)}`
           : 'Arriving soon',
       };
     case 'AT_PICKUP': {
@@ -126,7 +127,7 @@ export function headlineFor(trip: PublicTrip, now: number): Headline {
       if (isRental) {
         return {
           title: 'Trip in progress',
-          subtitle: ride.ends_at ? `Booking ends ${formatTime(new Date(ride.ends_at))}` : '',
+          subtitle: ride.ends_at ? `Booking ends ${formatWhen(new Date(ride.ends_at), now)}` : '',
         };
       }
       return {

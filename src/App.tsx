@@ -42,7 +42,16 @@ export default function App() {
     <div className="flex min-h-dvh flex-col">
       <div className="mx-auto flex w-full max-w-[480px] flex-1 flex-col">
         <header className="px-5 pt-8 pb-2">
-          <img src={logo} alt="Primelane" width={152} height={20} className="h-5 w-auto" />
+          {/* New tab, so the passenger doesn't lose their trip page. */}
+          <a
+            href="https://primelanehq.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Primelane website (opens in a new tab)"
+            className="inline-block rounded focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-black"
+          >
+            <img src={logo} alt="Primelane" width={152} height={20} className="h-5 w-auto" />
+          </a>
         </header>
 
         {state.kind === 'loading' && <Skeleton />}
